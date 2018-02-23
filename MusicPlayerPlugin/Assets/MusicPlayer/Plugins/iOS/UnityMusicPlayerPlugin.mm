@@ -59,6 +59,10 @@ static UnityMusicPlayerPlugin * _shared;
                                                selector:@selector(onNowPlayingItemChanged:)
                                                    name:MPMusicPlayerControllerNowPlayingItemDidChangeNotification
                                                  object:nil];
+        [NSNotificationCenter.defaultCenter addObserver:self
+                                               selector:@selector(onPlaybackStateChanged:)
+                                                   name:MPMusicPlayerControllerPlaybackStateDidChangeNotification
+                                                 object:nil];
         [self.player beginGeneratingPlaybackNotifications];
     }
     return self;
@@ -100,7 +104,7 @@ static UnityMusicPlayerPlugin * _shared;
         @"artist":item.artist,
         @"album":item.albumTitle,
         @"duration": [NSNumber numberWithDouble:item.playbackDuration],
-        @"currentTime": [NSNumber numberWithDouble:self.player.currentPlaybackTime]
+        @"currentTime": [NSNumber numberWithDouble:self.currentPlaybackTime]
     };
     NSData *data = [NSJSONSerialization dataWithJSONObject:json options:NSJSONWritingPrettyPrinted error:nil];
     NSString* msg = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
@@ -109,9 +113,14 @@ static UnityMusicPlayerPlugin * _shared;
     UnitySendMessage("MusicPlayerPlugin", "OnItemChanged", msg.UTF8String);
 }
 
+- (void) onPlaybackStateChanged:(NSNotification*) notification {
+    int state = self.player.playbackState;
+    UnitySendMessage("MusicPlayerPlugin", "OnPlaybackStateChanged", [NSString stringWithFormat:@"%d", state].UTF8String);
+}
 
 - (double) currentPlaybackTime {
-    return self.player.currentPlaybackTime;
+    double time = self.player.currentPlaybackTime;
+    return isnan(time) ? 0 : time;
 }
 
 

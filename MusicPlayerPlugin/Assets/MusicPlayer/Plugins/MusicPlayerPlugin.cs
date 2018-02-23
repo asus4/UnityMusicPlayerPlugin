@@ -5,6 +5,17 @@ using UnityEngine;
 namespace MusicPlayer
 {
     [Serializable]
+    public enum PlaybackState
+    {
+        Stopped,
+        Playing,
+        Paused,
+        Interrupted,
+        SeekingForward,
+        SeekingBackward
+    }
+
+    [Serializable]
     public class Info
     {
         public string title;
@@ -17,7 +28,9 @@ namespace MusicPlayer
     public class MusicPlayerPlugin : MonoBehaviour
     {
         public Info info = new Info();
+        public PlaybackState State { get; private set; }
         public event Action<Info> OnPlayingItemChanged;
+        public event Action<PlaybackState> OnStateChanged;
 
         public void Load()
         {
@@ -42,11 +55,30 @@ namespace MusicPlayer
             }
         }
 
+        /// <summary>
+        /// Invoked from native code
+        /// </summary>
+        /// <param name="stateStr"></param>
+        public void OnPlaybackStateChanged(string stateStr)
+        {
+            int state;
+            if (!int.TryParse(stateStr, out state))
+            {
+                Debug.LogWarningFormat("Could not parse state: {0}", stateStr);
+                return;
+            }
+            State = (PlaybackState)state;
+            if (OnStateChanged != null)
+            {
+                OnStateChanged(State);
+            }
+        }
+
         public float CurrentTime
         {
             get
             {
-                info.currentTime = (float) _unityMusicPlayer_currentTime();
+                info.currentTime = (float)_unityMusicPlayer_currentTime();
                 return info.currentTime;
             }
         }
